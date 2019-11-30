@@ -15,6 +15,9 @@ with open('Y_true.pkl', 'rb') as handle:
 with open('outputs.pkl', 'rb') as handle:
     outputs = pkl.load(handle)
 
+with open('primary_steps.pkl', 'rb') as handle:
+    step_names = pkl.load(handle)
+
 for task in Y_true:
     for vid in Y_true[task]:
         ground_truth = Y_true[task][vid]
@@ -23,8 +26,8 @@ for task in Y_true:
         num_seconds, num_steps = np.shape(ground_truth)
 
         lsm_outputs = np.exp(lsm_outputs)
-        for t in range(num_seconds):
-            lsm_outputs[t,:] = lsm_outputs[t,:] / np.max(lsm_outputs[t,:])
+        for s in range(num_steps):
+            lsm_outputs[:,s] = lsm_outputs[:,s] / np.max(lsm_outputs[:,s])
 
         fig, ax = plt.subplots()
         ax.set_axis_off()
@@ -36,20 +39,20 @@ for task in Y_true:
         for (r,c), _ in np.ndenumerate(ground_truth):
             # lsm_output cell
             color = (0, 0, lsm_outputs[r,c])
-            column = 3*c
+            column = 3*c+1
             tb.add_cell(r, column, cwidth, cheight, \
                     facecolor=color, edgecolor='none')
 
             # prediction cell
             if prediction[r,c] > .99 and ground_truth[r,c] > .99:
-                color = 'green'
+                color = 'limegreen'
 
             elif prediction[r,c] > .99 and ground_truth[r,c] < .99:
                 color = 'red'
 
             else:
                 color = (0, 0, lsm_outputs[r,c])
-            column = 3*c+1
+            column = 3*c+1+1
             tb.add_cell(r, column, cwidth, cheight, \
                     facecolor=color, edgecolor='none')
 
@@ -58,9 +61,20 @@ for task in Y_true:
                 color = 'yellow'
             else:
                 color = (0, 0, lsm_outputs[r,c])
-            column = 3*c+2
+            column = 3*c+2+1
             tb.add_cell(r, column, cwidth, cheight, \
                     facecolor=color, edgecolor='none')
+        
+        # Row Labels
+        for r in range(num_seconds):
+            if r % 10 == 0:
+                tb.add_cell(r, 0, 25, cheight, text=str(r), loc='right', \
+                            edgecolor='none', facecolor='none')
+
+        # Column Labels
+        for c in range(num_steps):
+            tb.add_cell(num_seconds, c+1, 15, 15, text=step_names[task][c], loc='right', \
+                            edgecolor='none', facecolor='none')
 
         ax.add_table(tb)
         fig.savefig('graphs/' + task + '---' + vid)

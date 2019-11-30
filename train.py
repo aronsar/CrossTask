@@ -45,7 +45,6 @@ def get_recalls(Y_true, Y_pred):
 
 args = parse_args()
 
-import pdb; pdb.set_trace()
 task_vids = get_vids(args.video_csv_path)
 val_vids = get_vids(args.val_csv_path)
 task_vids = {task: [vid for vid in vids if task not in val_vids or vid not in val_vids[task]] for task,vids in task_vids.items()}
@@ -87,6 +86,7 @@ testloader = DataLoader(testset,
     collate_fn = lambda batch: batch,
     )
 
+import pdb; pdb.set_trace()
 net = Model(args.d, M, A, args.q).cuda() if args.use_gpu else Model(args.d, M, A, args.q)
 optimizer = optim.Adam(net.parameters(), lr=args.lr)
 loss_fn = Loss(args.lambd)
