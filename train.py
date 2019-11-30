@@ -11,7 +11,7 @@ import torch as th
 import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import DataLoader
-th.cuda.set_device(1)
+import pickle
 
 class Loss(nn.Module):
     def __init__(self, lambd):
@@ -104,10 +104,10 @@ for batch in trainloader:
         y = uniform_assignment(T,K)
         Y[task][vid] = y.cuda() if args.use_gpu else y
 
-def save_pred_and_gt(Y_pred, Y_true):
-    import pickle
+def save_stuff(Y_pred, Y_true, outputs):
     pickle.dump(Y_pred, open('Y_pred.pkl', 'wb'), protocol=pickle.HIGHEST_PROTOCOL)
     pickle.dump(Y_true, open('Y_true.pkl', 'wb'), protocol=pickle.HIGHEST_PROTOCOL)
+    pickle.dump(outputs, open('outputs.pkl', 'wb'), protocol=pickle.HIGHEST_PROTOCOL)
 
 def train_epoch(pretrain=False):
     cumloss = 0.
@@ -162,7 +162,7 @@ def eval():
             O = lsm(net(X, task))
             if task not in outputs:
                 outputs[task] = {}
-            outputs[task][vid] = O
+            outputs[task][vid] = O.detach().cpu().numpy()
 
             y = np.zeros(O.size(),dtype=np.float32)
             dp(y,-O.detach().cpu().numpy())
@@ -179,13 +179,14 @@ def eval():
         print('Task {0}. Recall = {1:0.3f}'.format(task, rec))
     avg_recall = np.mean(list(recalls.values()))
     print ('Recall: {0:0.3f}'.format(avg_recall))
-    save_pred_and_gt(Y_pred, Y_true)
+    save_stuff(Y_pred, Y_true, outputs)
     net.train()
 
-print ('Training...')
 if args.model_load_path:
+    print ('Loading...')
     net.load_state_dict(th.load(args.model_load_path))
 else:
+    print ('Training...')
     net.train()
     for epoch in range(args.pretrain_epochs):
         cumloss = train_epoch(pretrain=True)
