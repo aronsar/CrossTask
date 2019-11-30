@@ -1,0 +1,9 @@
+*.pkl
+__pycache__
+crosstask_constraints
+crosstask_features
+crosstask_release
+*.so
+*.pth
+*.png
+venv

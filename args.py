@@ -102,5 +102,17 @@ def parse_args():
         default='words',
         help='Level of sharing between tasks',
         )
+    parser.add_argument(
+        '--model_load_path',
+        type=str,
+        default=None,
+        help='full path of model to load; default is to train from scratch',
+        )
+    parser.add_argument(
+        '--model_save_path',
+        type=str,
+        default=None,
+        help='where to save model; default is to not save',
+        )
     args = parser.parse_args()
     return args

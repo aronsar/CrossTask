@@ -11,6 +11,7 @@ import torch as th
 import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import DataLoader
+th.cuda.set_device(1)
 
 class Loss(nn.Module):
     def __init__(self, lambd):
@@ -44,6 +45,7 @@ def get_recalls(Y_true, Y_pred):
 
 args = parse_args()
 
+import pdb; pdb.set_trace()
 task_vids = get_vids(args.video_csv_path)
 val_vids = get_vids(args.val_csv_path)
 task_vids = {task: [vid for vid in vids if task not in val_vids or vid not in val_vids[task]] for task,vids in task_vids.items()}
@@ -102,6 +104,11 @@ for batch in trainloader:
         y = uniform_assignment(T,K)
         Y[task][vid] = y.cuda() if args.use_gpu else y
 
+def save_pred_and_gt(Y_pred, Y_true):
+    import pickle
+    pickle.dump(Y_pred, open('Y_pred.pkl', 'wb'), protocol=pickle.HIGHEST_PROTOCOL)
+    pickle.dump(Y_true, open('Y_true.pkl', 'wb'), protocol=pickle.HIGHEST_PROTOCOL)
+
 def train_epoch(pretrain=False):
     cumloss = 0.
     for batch in trainloader:
@@ -146,12 +153,17 @@ def eval():
     lsm = nn.LogSoftmax(dim=1)
     Y_pred = {}
     Y_true = {}
+    outputs = {}
     for batch in testloader:
         for sample in batch:
             vid = sample['vid']
             task = sample['task']
             X = sample['X'].cuda() if args.use_gpu else sample['X']
             O = lsm(net(X, task))
+            if task not in outputs:
+                outputs[task] = {}
+            outputs[task][vid] = O
+
             y = np.zeros(O.size(),dtype=np.float32)
             dp(y,-O.detach().cpu().numpy())
             if task not in Y_pred:
@@ -167,16 +179,23 @@ def eval():
         print('Task {0}. Recall = {1:0.3f}'.format(task, rec))
     avg_recall = np.mean(list(recalls.values()))
     print ('Recall: {0:0.3f}'.format(avg_recall))
+    save_pred_and_gt(Y_pred, Y_true)
     net.train()
 
 print ('Training...')
-net.train()
-for epoch in range(args.pretrain_epochs):
-    cumloss = train_epoch(pretrain=True)
-    print ('Epoch {0}. Loss={1:0.2f}'.format(epoch+1, cumloss))
-for epoch in range(args.epochs):
-    cumloss = train_epoch()
-    print ('Epoch {0}. Loss={1:0.2f}'.format(args.pretrain_epochs+epoch+1, cumloss))
+if args.model_load_path:
+    net.load_state_dict(th.load(args.model_load_path))
+else:
+    net.train()
+    for epoch in range(args.pretrain_epochs):
+        cumloss = train_epoch(pretrain=True)
+        print ('Epoch {0}. Loss={1:0.2f}'.format(epoch+1, cumloss))
+    for epoch in range(args.epochs):
+        cumloss = train_epoch()
+        print ('Epoch {0}. Loss={1:0.2f}'.format(args.pretrain_epochs+epoch+1, cumloss))
+
+if args.model_save_path:
+    th.save(net.state_dict(), args.model_save_path)
 
 print ('Evaluating...')
 eval()
