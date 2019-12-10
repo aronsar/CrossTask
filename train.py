@@ -11,7 +11,8 @@ import torch as th
 import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import DataLoader
-th.cuda.set_device(1)
+import pickle
+#th.cuda.set_device(1)
 
 class Loss(nn.Module):
     def __init__(self, lambd):
@@ -105,7 +106,6 @@ for batch in trainloader:
         Y[task][vid] = y.cuda() if args.use_gpu else y
 
 def save_pred_and_gt(Y_pred, Y_true):
-    import pickle
     pickle.dump(Y_pred, open('Y_pred.pkl', 'wb'), protocol=pickle.HIGHEST_PROTOCOL)
     pickle.dump(Y_true, open('Y_true.pkl', 'wb'), protocol=pickle.HIGHEST_PROTOCOL)
 
