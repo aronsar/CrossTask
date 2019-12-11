@@ -12,6 +12,7 @@ import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import DataLoader
 import pickle
+#th.cuda.set_device(1)
 
 class Loss(nn.Module):
     def __init__(self, lambd):
