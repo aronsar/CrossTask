@@ -114,5 +114,11 @@ def parse_args():
         default=None,
         help='where to save model; default is to not save',
         )
+    parser.add_argument(
+        '--use_gt_order',
+        type=bool,
+        default=False,
+        help='during evaluation, use the ground truth ordering of the action steps'
+        )
     args = parser.parse_args()
     return args

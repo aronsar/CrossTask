@@ -12,6 +12,8 @@ import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import DataLoader
 import pickle
+import csv
+import os
 #th.cuda.set_device(1)
 
 class Loss(nn.Module):
@@ -87,7 +89,6 @@ testloader = DataLoader(testset,
     collate_fn = lambda batch: batch,
     )
 
-import pdb; pdb.set_trace()
 net = Model(args.d, M, A, args.q).cuda() if args.use_gpu else Model(args.d, M, A, args.q)
 optimizer = optim.Adam(net.parameters(), lr=args.lr)
 loss_fn = Loss(args.lambd)
@@ -149,6 +150,17 @@ def train_epoch(pretrain=False):
             net.zero_grad()
     return cumloss
 
+def find_gt_order(annotation_filepath):
+    with open(annotation_filepath, "r") as annot_file:
+        reader = csv.reader(annot_file)
+        gt_order = []
+        for line in reader:
+            # actions organized in line by start time
+            action_num, _, _ = line
+            if action_num not in gt_order:
+                gt_order.append(int(action_num)-1)
+        return gt_order
+
 def eval():
     net.eval()
     lsm = nn.LogSoftmax(dim=1)
@@ -166,7 +178,19 @@ def eval():
             outputs[task][vid] = O.detach().cpu().numpy()
 
             y = np.zeros(O.size(),dtype=np.float32)
-            dp(y,-O.detach().cpu().numpy())
+
+            if args.use_gt_order:
+                annotation_filename = task + "_" + vid + ".csv"
+                annotation_filepath = os.path.join(
+                    "./crosstask_release/annotations/", annotation_filename)
+                gt_order = find_gt_order(annotation_filepath)
+                gt_order_O = outputs[task][vid][:, gt_order]
+                gt_order_y = np.zeros(np.shape(gt_order_O), dtype=np.float32)
+                dp(gt_order_y, -gt_order_O)
+                y[:, gt_order] = gt_order_y
+            else:
+                dp(y,-O.detach().cpu().numpy())
+
             if task not in Y_pred:
                 Y_pred[task] = {}
             Y_pred[task][vid] = y
