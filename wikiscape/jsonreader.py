@@ -1,7 +1,7 @@
 import json
 import sys
 
-MIN_TEXT_LENGTH = 100 # minimum length of paragraph to be included, measured in
+MIN_TEXT_LENGTH = 1 # minimum length of paragraph to be included, measured in
                       # number of characters
 FORBIDDEN_WORDS = ['ArticleQuestion', 'wikiHow']
 
@@ -18,7 +18,7 @@ def print_text(json_node):
     # output text
     if type(json_node) is dict and 'text' in json_node:
         text = json_node['text']
-        assert type(text) is str
+        assert type(text) is str or type(text) is unicode
         if passes_criteria(text):
             print(text)
             
@@ -35,3 +35,4 @@ if __name__ == '__main__':
     with open(input_file) as json_file:
         data = json.load(json_file)
         print_text(data)
+        import pdb; pdb.set_trace()

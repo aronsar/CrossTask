@@ -166,7 +166,7 @@ def eval():
     lsm = nn.LogSoftmax(dim=1)
     Y_pred = {}
     Y_true = {}
-    outputs = {}
+    outputs = {} # needed for blue graph creation
     for batch in testloader:
         for sample in batch:
             vid = sample['vid']
